@@ -58,39 +58,35 @@ pub const ZonFile = struct {
         const clean_content = try stripComments(allocator, content);
         defer allocator.free(clean_content);
 
-        // Parse the ZON content
-        var parser = json.Parser.init(allocator, false);
-        defer parser.deinit();
+        // Parse the ZON content using new JSON API
+        const parsed = try std.json.parseFromSlice(std.json.Value, allocator, clean_content, .{});
+        defer parsed.deinit();
+        const root = parsed.value;
 
-        var tree = try parser.parse(clean_content);
-        defer tree.deinit();
-
-        const root = tree.root;
-
-        // Create the ZonFile
+        // Create the ZonFile - updated for new JSON API
         var zon_file = ZonFile{
-            .name = try allocator.dupe(u8, root.Object.get("name").?.String),
-            .version = try allocator.dupe(u8, root.Object.get("version").?.String),
+            .name = try allocator.dupe(u8, root.object.get("name").?.string),
+            .version = try allocator.dupe(u8, root.object.get("version").?.string),
             .dependencies = std.StringHashMap(Dependency).init(allocator),
             .allocator = allocator,
         };
 
-        // Parse dependencies if they exist
-        if (root.Object.get("dependencies")) |deps_node| {
-            if (deps_node != .Object) {
+        // Parse dependencies if they exist - updated for new JSON API
+        if (root.object.get("dependencies")) |deps_node| {
+            if (deps_node != .object) {
                 // Empty dependencies section
                 return zon_file;
             }
 
-            var deps_it = deps_node.Object.iterator();
+            var deps_it = deps_node.object.iterator();
             while (deps_it.next()) |entry| {
                 const dep_name = entry.key_ptr.*;
                 const dep_obj = entry.value_ptr.*;
 
-                if (dep_obj != .Object) continue;
+                if (dep_obj != .object) continue;
 
-                const url = dep_obj.Object.get("url").?.String;
-                const hash = dep_obj.Object.get("hash").?.String;
+                const url = dep_obj.object.get("url").?.string;
+                const hash = dep_obj.object.get("hash").?.string;
 
                 try zon_file.addDependency(dep_name, url, hash);
             }

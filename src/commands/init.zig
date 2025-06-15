@@ -158,7 +158,7 @@ fn createZonFile(allocator: mem.Allocator) !void {
 
     // Customize project name based on current directory
     const cwd = fs.cwd();
-    var path_buffer: [fs.MAX_PATH_BYTES]u8 = undefined;
+    var path_buffer: [fs.max_path_bytes]u8 = undefined;
     const cwd_path = try cwd.realpath(".", &path_buffer);
 
     // Extract the directory name from the path

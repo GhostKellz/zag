@@ -1,6 +1,5 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const Headers = std.http.Headers;
 const http = std.http;
 const fs = std.fs;
 const crypto = std.crypto;
@@ -46,12 +45,8 @@ pub fn downloadAndHashPackage(allocator: Allocator, package_ref: []const u8) !Do
     const cache_path = try std.fmt.allocPrint(allocator, ".zag/cache/{s}.tar.gz", .{package_ref});
     errdefer allocator.free(cache_path);
 
-    // Create client
-    var client = http.Client{ .allocator = allocator };
-    defer client.deinit();
-
-    // Download the tarball
-    try downloadFile(allocator, &client, url, cache_path);
+    // Download the tarball directly with improved curl
+    try downloadWithCurlImproved(allocator, url, cache_path);
 
     // Calculate SHA256 hash of the downloaded file
     const hash = try calculateFileHash(allocator, cache_path);
@@ -84,48 +79,11 @@ pub fn ensureCacheDir(_: Allocator) !void {
 }
 
 /// Downloads a file from a URL to a local path
-pub fn downloadFile(allocator: Allocator, client: *http.Client, url: []const u8, output_path: []const u8) !void {
+pub fn downloadFile(allocator: Allocator, url: []const u8, output_path: []const u8) !void {
     std.debug.print("Downloading {s}...\n", .{url});
 
-    // Make the request
-    var headers = Headers.init(allocator);
-    defer headers.deinit();
-
-    // Set up a buffer for the response
-    var req = try client.request(.GET, try std.Uri.parse(url), headers, .{});
-    defer req.deinit();
-
-    try req.start();
-    try req.wait();
-
-    const status = req.response.status;
-    if (status != .ok) {
-        return error.HttpRequestFailed;
-    }
-
-    // Open the output file
-    const cwd = fs.cwd();
-    const file = try cwd.createFile(output_path, .{});
-    defer file.close();
-
-    // Read the response and write it to the file
-    const reader = req.reader();
-    var buffer: [8192]u8 = undefined;
-    var total_size: usize = 0;
-
-    while (true) {
-        const bytes_read = try reader.read(&buffer);
-        if (bytes_read == 0) break;
-
-        total_size += bytes_read;
-        if (total_size > MAX_DOWNLOAD_SIZE) {
-            return error.FileTooLarge;
-        }
-
-        try file.writeAll(buffer[0..bytes_read]);
-    }
-
-    std.debug.print("Downloaded {d} bytes\n", .{total_size});
+    // Use curl instead of std.http due to API changes
+    return downloadWithCurl(allocator, url, output_path);
 }
 
 /// Calculates SHA256 hash of a file
@@ -160,7 +118,7 @@ pub fn calculateFileHash(allocator: Allocator, file_path: []const u8) ![]const u
 
 /// Option to use curl instead of std.http, using a subprocess
 /// This implementation is a fallback in case std.http has issues
-fn downloadWithCurl(allocator: Allocator, url: []const u8, output_path: []const u8) !void {
+pub fn downloadWithCurl(allocator: Allocator, url: []const u8, output_path: []const u8) !void {
     std.debug.print("Downloading with curl: {s}...\n", .{url});
 
     const argv = [_][]const u8{
@@ -172,18 +130,143 @@ fn downloadWithCurl(allocator: Allocator, url: []const u8, output_path: []const 
         url,
     };
 
-    const result = try std.process.Child.exec(.{
-        .allocator = allocator,
-        .argv = &argv,
-    });
+    // Create the child process
+    var child = std.process.Child.init(&argv, allocator);
+    child.stdin_behavior = .Ignore;
+    child.stdout_behavior = .Pipe;
+    child.stderr_behavior = .Pipe;
 
-    defer {
-        allocator.free(result.stdout);
-        allocator.free(result.stderr);
+    try child.spawn();
+
+    // Wait for the process to complete
+    const term = try child.wait();
+
+    // Read output
+    const stderr = try child.stderr.?.reader().readAllAlloc(allocator, 10 * 1024 * 1024);
+    defer allocator.free(stderr);
+
+    // Check exit code - success is 0
+    switch (term) {
+        .Exited => |code| {
+            if (code != 0) {
+                std.debug.print("curl error (exit code {d}): {s}\n", .{ code, stderr });
+                return error.CurlFailed;
+            }
+        },
+        else => {
+            std.debug.print("curl error (terminated abnormally): {s}\n", .{stderr});
+            return error.CurlFailed;
+        },
+    }
+}
+
+/// Improved curl-based downloader with better error handling and validation
+pub fn downloadWithCurlImproved(allocator: Allocator, url: []const u8, output_path: []const u8) !void {
+    std.debug.print("Downloading {s}...\n", .{url});
+
+    // Ensure output directory exists
+    if (std.fs.path.dirname(output_path)) |dir| {
+        try std.fs.cwd().makePath(dir);
     }
 
-    if (result.term.Exited != 0) {
-        std.debug.print("curl error: {s}\n", .{result.stderr});
-        return error.CurlFailed;
+    const argv = [_][]const u8{
+        "curl",
+        "-L", // Follow redirects
+        "-s", // Silent mode
+        "-S", // Show errors even in silent mode
+        "--fail", // Fail silently on HTTP errors
+        "--max-time",   "30", // 30 second timeout
+        "--user-agent", "zag/0.1.0",
+        "-o",           output_path,
+        url,
+    };
+
+    // Create the child process
+    var child = std.process.Child.init(&argv, allocator);
+    child.stdin_behavior = .Ignore;
+    child.stdout_behavior = .Pipe;
+    child.stderr_behavior = .Pipe;
+
+    try child.spawn();
+
+    // Wait for the process to complete
+    const term = try child.wait();
+
+    // Read stderr for error messages
+    const stderr = try child.stderr.?.reader().readAllAlloc(allocator, 10 * 1024 * 1024);
+    defer allocator.free(stderr);
+
+    // Check exit code - success is 0
+    switch (term) {
+        .Exited => |code| {
+            if (code != 0) {
+                std.debug.print("curl failed (exit code {d}): {s}\n", .{ code, stderr });
+                // Clean up partial download
+                std.fs.cwd().deleteFile(output_path) catch {};
+                return error.DownloadFailed;
+            }
+        },
+        else => {
+            std.debug.print("curl terminated abnormally: {s}\n", .{stderr});
+            std.fs.cwd().deleteFile(output_path) catch {};
+            return error.DownloadFailed;
+        },
     }
+
+    // Verify the file was actually created and has content
+    const file = std.fs.cwd().openFile(output_path, .{}) catch {
+        return error.DownloadFailed;
+    };
+    defer file.close();
+
+    const file_size = try file.getEndPos();
+    if (file_size == 0) {
+        std.debug.print("Downloaded file is empty\n", .{});
+        return error.DownloadFailed;
+    }
+
+    std.debug.print("Successfully downloaded {d} bytes\n", .{file_size});
+}
+
+/// Fallback downloader using wget (if curl fails)
+pub fn downloadWithWget(allocator: Allocator, url: []const u8, output_path: []const u8) !void {
+    std.debug.print("Trying wget for {s}...\n", .{url});
+
+    const argv = [_][]const u8{
+        "wget",
+        "-q", // Quiet mode
+        "--timeout=30", // 30 second timeout
+        "--user-agent=zag/0.1.0",
+        "-O",
+        output_path,
+        url,
+    };
+
+    var child = std.process.Child.init(&argv, allocator);
+    child.stdin_behavior = .Ignore;
+    child.stdout_behavior = .Pipe;
+    child.stderr_behavior = .Pipe;
+
+    try child.spawn();
+    const term = try child.wait();
+
+    switch (term) {
+        .Exited => |code| {
+            if (code != 0) {
+                return error.WgetFailed;
+            }
+        },
+        else => return error.WgetFailed,
+    }
+}
+
+/// Smart downloader that tries curl first, then wget as fallback
+pub fn downloadSmart(allocator: Allocator, url: []const u8, output_path: []const u8) !void {
+    downloadWithCurlImproved(allocator, url, output_path) catch |err| {
+        if (err == error.DownloadFailed) {
+            std.debug.print("curl failed, trying wget...\n", .{});
+            return downloadWithWget(allocator, url, output_path);
+        }
+        return err;
+    };
 }

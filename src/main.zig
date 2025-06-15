@@ -36,6 +36,8 @@ pub fn main() !void {
         try handleHelpCommand(allocator, command_args);
     } else if (std.mem.eql(u8, command, "lock")) {
         try handleLockCommand(allocator, command_args);
+    } else if (std.mem.eql(u8, command, "clean")) {
+        try handleCleanCommand(allocator, command_args);
     } else {
         std.debug.print("Unknown command: {s}\n", .{command});
         try printUsage();
@@ -90,6 +92,10 @@ fn handleHelpCommand(allocator: std.mem.Allocator, args: []const []const u8) !vo
 fn handleLockCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
     _ = args;
     try zag.commands.lock(allocator);
+}
+
+fn handleCleanCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
+    try zag.commands.clean(allocator, args);
 }
 
 test "simple test" {

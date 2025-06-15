@@ -93,35 +93,32 @@ pub const LockFile = struct {
         const file_content = try cwd.readFileAlloc(allocator, lock_path, 10 * 1024 * 1024);
         defer allocator.free(file_content);
 
-        // Parse JSON
-        var parser = json.Parser.init(allocator, false);
-        defer parser.deinit();
-
-        var tree = try parser.parse(file_content);
-        defer tree.deinit();
+        // Parse JSON using new API
+        const parsed = try std.json.parseFromSlice(std.json.Value, allocator, file_content, .{});
+        defer parsed.deinit();
+        const root = parsed.value;
 
         var lock_file = LockFile.init(allocator);
         errdefer lock_file.deinit();
 
-        const root = tree.root;
-
-        if (root.Object.get("packages")) |packages_value| {
-            if (packages_value != .Array) {
+        // Update JSON value access patterns for new API
+        if (root.object.get("packages")) |packages_value| {
+            if (packages_value != .array) {
                 return error.InvalidLockFile;
             }
 
-            const packages = packages_value.Array.items;
+            const packages = packages_value.array.items;
             for (packages) |pkg_value| {
-                if (pkg_value != .Object) continue;
+                if (pkg_value != .object) continue;
 
-                const pkg_obj = pkg_value.Object;
+                const pkg_obj = pkg_value.object;
 
-                const name = pkg_obj.get("name").?.String;
-                const url = pkg_obj.get("url").?.String;
-                const hash = pkg_obj.get("hash").?.String;
+                const name = pkg_obj.get("name").?.string;
+                const url = pkg_obj.get("url").?.string;
+                const hash = pkg_obj.get("hash").?.string;
 
-                const version = if (pkg_obj.get("version")) |v| v.String else null;
-                const timestamp = pkg_obj.get("timestamp").?.Integer;
+                const version = if (pkg_obj.get("version")) |v| v.string else null;
+                const timestamp = pkg_obj.get("timestamp").?.integer;
 
                 try lock_file.packages.append(LockedPackage{
                     .name = try allocator.dupe(u8, name),
@@ -157,40 +154,37 @@ pub const LockFile = struct {
             \\
         , .{time_str});
 
-        // Create a JSON output object
-        var packages_array = std.ArrayList(std.json.Value).init(self.allocator);
-        defer packages_array.deinit();
+        // Create a JSON output using the new API
+        var arena = std.heap.ArenaAllocator.init(self.allocator);
+        defer arena.deinit();
+        const arena_allocator = arena.allocator();
 
         // Build packages array
-        for (self.packages.items) |pkg| {
-            var pkg_obj = std.json.ObjectMap.init(self.allocator);
+        var packages_array = std.ArrayList(std.json.Value).init(arena_allocator);
 
-            // Add package fields
-            try pkg_obj.put("name", std.json.Value{ .string = pkg.name });
-            try pkg_obj.put("url", std.json.Value{ .string = pkg.url });
-            try pkg_obj.put("hash", std.json.Value{ .string = pkg.hash });
-            try pkg_obj.put("timestamp", std.json.Value{ .integer = pkg.timestamp });
+        for (self.packages.items) |pkg| {
+            var pkg_map = std.json.ObjectMap.init(arena_allocator);
+
+            try pkg_map.put("name", .{ .string = pkg.name });
+            try pkg_map.put("url", .{ .string = pkg.url });
+            try pkg_map.put("hash", .{ .string = pkg.hash });
+            try pkg_map.put("timestamp", .{ .integer = pkg.timestamp });
 
             if (pkg.version) |version| {
-                try pkg_obj.put("version", std.json.Value{ .string = version });
+                try pkg_map.put("version", .{ .string = version });
             }
 
-            try packages_array.append(std.json.Value{ .object = pkg_obj });
+            try packages_array.append(.{ .object = pkg_map });
         }
 
         // Create root object
-        var root_obj = std.json.ObjectMap.init(self.allocator);
-        defer root_obj.deinit();
+        var root_map = std.json.ObjectMap.init(arena_allocator);
+        try root_map.put("packages", .{ .array = packages_array });
 
-        try root_obj.put("packages", std.json.Value{ .array = packages_array });
+        const root_value = std.json.Value{ .object = root_map };
 
-        // Create options for pretty printing
-        const json_fmt_options = std.json.StringifyOptions{
-            .whitespace = .{ .indent = .{ .space = 2 } },
-        };
-
-        // Write pretty JSON
-        try std.json.stringify(std.json.Value{ .object = root_obj }, json_fmt_options, file.writer());
+        // Write JSON with formatting
+        try std.json.stringify(root_value, .{ .whitespace = .indent_2 }, file.writer());
 
         // Add final newline
         try file.writer().writeAll("\n");

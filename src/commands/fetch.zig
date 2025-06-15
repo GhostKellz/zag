@@ -136,10 +136,6 @@ pub fn fetch(allocator: mem.Allocator) !void {
 
 /// Helper function to download a package from a URL to the cache
 fn downloadPackage(allocator: mem.Allocator, url: []const u8, cache_path: []const u8) !void {
-    // Create client
-    var client = std.http.Client{ .allocator = allocator };
-    defer client.deinit();
-
-    // Download the file
-    try downloader.downloadFile(allocator, &client, url, cache_path);
+    // Use the improved curl downloader instead of HTTP client
+    try downloader.downloadWithCurlImproved(allocator, url, cache_path);
 }
