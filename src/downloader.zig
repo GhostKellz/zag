@@ -2,7 +2,13 @@ const std = @import("std");
 const fs = std.fs;
 const Allocator = std.mem.Allocator;
 const crypto = std.crypto;
-const http = std.http;
+const http = struct {
+    pub const Client = @import("std").http.Client;
+    pub const Headers = @import("std").http.Headers;
+};
+
+// Update HTTP headers usage for Zig 0.15.0
+const Headers = @import("std").http.client.Headers;
 
 /// Maximum size of downloaded content (100MB)
 const MAX_DOWNLOAD_SIZE = 100 * 1024 * 1024;
@@ -87,7 +93,7 @@ pub fn downloadFile(allocator: Allocator, client: *http.Client, url: []const u8,
     std.debug.print("Downloading {s}...\n", .{url});
 
     // Make the request
-    var headers = http.Headers.init(allocator);
+    var headers = Headers.init(allocator);
     defer headers.deinit();
 
     // Set up a buffer for the response
