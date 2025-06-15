@@ -8,12 +8,17 @@ pub fn help(_: std.mem.Allocator) !void {
         \\Commands:
         \\  init        Initialize a new project
         \\  add         Add a dependency to the project
+        \\  remove      Remove a dependency from the project
+        \\  update      Update all dependencies to latest versions
         \\  fetch       Fetch dependencies
         \\  build       Build the project
         \\  lock        Update the lock file without downloading
         \\  clean       Remove cache and build artifacts
         \\  version     Show zag version
         \\  help        Show this help message
+        \\
+        \\Command aliases:
+        \\  rm          Alias for remove
         \\
         \\Clean options:
         \\  clean       Remove .zig-cache and .zag/cache

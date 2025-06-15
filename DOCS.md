@@ -26,6 +26,8 @@ src/
 │   ├── mod.zig          # Commands module exports
 │   ├── init.zig         # Project initialization
 │   ├── add.zig          # Add dependencies (core feature)
+│   ├── remove.zig       # Remove dependencies with cleanup
+│   ├── update.zig       # Update dependencies to latest versions
 │   ├── fetch.zig        # Fetch all dependencies
 │   ├── build.zig        # Build project
 │   ├── clean.zig        # Clean artifacts
@@ -197,6 +199,64 @@ const exe = b.addExecutable(.{
 });
 ```
 
+### Dependency Removal
+
+The `zag remove` command provides comprehensive cleanup:
+
+1. **Validation**: Checks that the package exists in `build.zig.zon`
+2. **Manifest cleanup**: Removes from `build.zig.zon` and `zag.lock`
+3. **Build script cleanup**: Automatically removes auto-generated blocks from `build.zig`
+4. **File cleanup**: Deletes the package directory from `.zag/deps/`
+
+**Smart removal logic:**
+- Identifies blocks added by `zag add` using comment markers
+- Removes entire module definition blocks automatically
+- Warns about manual dependencies that need manual removal
+- Provides fallback instructions when automatic removal fails
+
+**Example workflow:**
+```bash
+# Add a dependency
+zag add mitchellh/libxev
+
+# Later, remove it completely
+zag remove libxev
+# or use the short alias
+zag rm libxev
+```
+
+### Dependency Updates
+
+The `zag update` command provides intelligent dependency updating:
+
+1. **Smart hash comparison**: Only updates packages when content actually changes
+2. **Selective updating**: Preserves unchanged dependencies to save time
+3. **Manifest synchronization**: Updates both `build.zig.zon` and `zag.lock` atomically
+4. **Extraction optimization**: Only re-extracts packages that have changed
+5. **Progress reporting**: Shows real-time status and comprehensive summary
+
+**Update strategy:**
+- Re-downloads each dependency from its original GitHub URL
+- Computes new SHA256 hash and compares with current
+- Updates manifest files only when hash changes
+- Maintains reproducible builds with exact version tracking
+
+**Example update workflow:**
+```bash
+# Check for and apply all updates
+zag update
+
+# Output shows exactly what changed:
+# 📦 Checking libxev...
+#   🔄 Hash changed! Updating...
+# 📦 Checking zig-clap...
+#   ✓ Up to date
+# 
+# 📋 Update Summary:
+# 🔄 Updated packages (1): libxev
+# ✅ Up-to-date packages (1): zig-clap
+```
+
 ## Configuration
 
 Currently, Zag uses minimal configuration and relies on conventions:
@@ -246,6 +306,28 @@ Zag is built for **Zig 0.15.0-dev** and later. Key compatibility considerations:
    pub const newcommand = @import("newcommand.zig").newcommand;
    ```
 4. Add to `src/main.zig` command dispatch
+5. Update help text in `src/commands/help.zig`
+6. Document in `COMMANDS.md` and `DOCS.md`
+
+### Command Implementation Examples
+
+**Simple command (no arguments):**
+```zig
+pub fn version(allocator: std.mem.Allocator) !void {
+    _ = allocator;
+    std.debug.print("zag {s}\n", .{@import("../root.zig").ZAG_VERSION});
+}
+```
+
+**Complex command with file manipulation:**
+```zig
+pub fn remove(allocator: Allocator, package_name: []const u8) !void {
+    // 1. Validate inputs
+    // 2. Load and modify manifest files
+    // 3. Clean up file system
+    // 4. Provide user feedback
+}
+```
 
 ## Troubleshooting
 
@@ -267,6 +349,14 @@ Zag requires `tar` for package extraction:
 Add this marker to your build.zig where you want dependencies:
 ```zig
 // zag:deps - dependencies will be added below this line
+```
+
+#### "Found manual dependency in build.zig - please remove manually"
+This warning appears when `zag remove` finds a dependency that wasn't added by `zag add`. You'll need to manually remove:
+```zig
+// Remove these lines manually:
+const libxev_mod = b.addModule("libxev", .{ ... });
+// And any corresponding imports in your executable
 ```
 
 #### Package structure validation warnings
@@ -297,7 +387,9 @@ zag clean --all  # Remove everything including lock file
 Planned features for future versions:
 
 - **Semantic versioning**: Support for version ranges like `^1.2.0`
-- **Git dependencies**: Direct git repository support
+- **Selective updates**: `zag update package_name` to update specific packages
+- **Update policies**: Pin specific packages to avoid updates
+- **Git dependencies**: Direct git repository support with commit/tag targeting
 - **Private registries**: Support for private package registries
 - **Workspaces**: Multi-package repository support
 - **Feature flags**: Optional dependency compilation

@@ -17,4 +17,6 @@ pub const fetch = @import("fetch.zig").fetch;
 pub const help = @import("help.zig").help;
 pub const init = @import("init.zig").init;
 pub const lock = @import("lock.zig").lock;
+pub const remove = @import("remove.zig").remove;
+pub const update = @import("update.zig").update;
 pub const version = @import("version.zig").version;

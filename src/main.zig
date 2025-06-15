@@ -38,6 +38,10 @@ pub fn main() !void {
         try handleLockCommand(allocator, command_args);
     } else if (std.mem.eql(u8, command, "clean")) {
         try handleCleanCommand(allocator, command_args);
+    } else if (std.mem.eql(u8, command, "remove") or std.mem.eql(u8, command, "rm")) {
+        try handleRemoveCommand(allocator, command_args);
+    } else if (std.mem.eql(u8, command, "update")) {
+        try handleUpdateCommand(allocator, command_args);
     } else {
         std.debug.print("Unknown command: {s}\n", .{command});
         try printUsage();
@@ -96,6 +100,22 @@ fn handleLockCommand(allocator: std.mem.Allocator, args: []const []const u8) !vo
 
 fn handleCleanCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
     try zag.commands.clean(allocator, args);
+}
+
+fn handleRemoveCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
+    if (args.len == 0) {
+        std.debug.print("Error: No package specified\n", .{});
+        std.debug.print("Usage: zag remove [package_name]\n", .{});
+        std.debug.print("   or: zag rm [package_name]\n", .{});
+        return;
+    }
+    const package_name = args[0];
+    try zag.commands.remove(allocator, package_name);
+}
+
+fn handleUpdateCommand(allocator: std.mem.Allocator, args: []const []const u8) !void {
+    _ = args; // update command doesn't take arguments currently
+    try zag.commands.update(allocator);
 }
 
 test "simple test" {
