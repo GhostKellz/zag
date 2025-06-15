@@ -159,6 +159,92 @@ Checking 2 dependencies for updates...
 - Maintains reproducible builds with exact hashes
 - Clear feedback about what was updated
 
+### `zag list` / `zag ls`
+
+Lists all dependencies in the project with their installation status.
+
+```bash
+zag list              # Table format
+zag ls                # Short alias
+zag list --json       # JSON output format
+```
+
+**What it does:**
+- Displays all dependencies from `build.zig.zon` in a clean table format
+- Shows installation status (✅ Installed or ❌ Missing) for each package
+- Extracts and displays GitHub repository information
+- Provides summary statistics (total, installed, missing)
+- Detects hash mismatches between manifest and lock file
+- **JSON mode:** Outputs machine-readable JSON array with `--json` flag
+
+**Example table output:**
+```
+📦 Dependencies for project 'my-project' v0.1.0:
+──────────────────────────────────────────────────────────────────────
+Name                 Status     Repository                     Hash
+──────────────────────────────────────────────────────────────────────
+libxev               ✅ Installed mitchellh/libxev                 1220abc123de...
+zig-clap             ❌ Missing   Hejsil/zig-clap                1220def456ab...
+──────────────────────────────────────────────────────────────────────
+Total: 2 dependencies, 1 installed, 1 missing
+
+💡 Run 'zag fetch' to install missing dependencies.
+```
+
+**JSON output features:**
+- Machine-readable format for tooling integration
+- Complete package information including timestamps
+- Installation status and file paths
+- Repository owner/name extraction
+
+### `zag info [package]`
+
+Shows detailed information about a specific package dependency.
+
+```bash
+zag info package_name
+```
+
+**What it does:**
+- Validates that the package exists in your dependencies
+- Displays comprehensive package information including name, URL, and hash
+- Shows installation status and file location
+- **Lock file integration:** Displays timestamp, version, and sync status
+- **Repository parsing:** Extracts GitHub owner and repository name
+- **Hash validation:** Warns if manifest and lock file hashes differ
+- Provides relevant command suggestions based on package status
+
+**Example output:**
+```
+📦 Package Information: libxev
+──────────────────────────────────────────────────
+📍 Name:        libxev
+🔗 URL:         https://github.com/mitchellh/libxev/archive/refs/heads/main.tar.gz
+🔒 Hash:        1220abc123def456
+📦 Full Hash:   1220abc123def456789012345678901234567890abcdef
+✅ Status:      Installed
+📁 Location:    .zag/deps/libxev
+
+🔒 Lock File Information:
+🕐 Timestamp:   1701234567
+📅 Added:       1701234567 (Unix timestamp)
+✅ Hash Match:  Manifest and lock file are synchronized
+
+🌐 Repository Information:
+🏠 Repository:  https://github.com/mitchellh/libxev
+👤 Owner:       mitchellh
+📚 Repository:  libxev
+
+💡 Commands:
+   zag update          # Update all packages
+   zag remove libxev   # Remove this package
+```
+
+**Error handling:**
+- Shows available packages if specified package not found
+- Warns about missing build.zig or src/ directory in packages
+- Alerts about hash mismatches between manifest and lock file
+
 ### `zag clean`
 
 Removes cache and build artifacts to free up disk space.

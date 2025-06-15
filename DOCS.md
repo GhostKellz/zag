@@ -28,6 +28,8 @@ src/
 │   ├── add.zig          # Add dependencies (core feature)
 │   ├── remove.zig       # Remove dependencies with cleanup
 │   ├── update.zig       # Update dependencies to latest versions
+│   ├── list.zig         # List all dependencies with status
+│   ├── info.zig         # Show detailed package information
 │   ├── fetch.zig        # Fetch all dependencies
 │   ├── build.zig        # Build project
 │   ├── clean.zig        # Clean artifacts
@@ -255,6 +257,60 @@ zag update
 # 📋 Update Summary:
 # 🔄 Updated packages (1): libxev
 # ✅ Up-to-date packages (1): zig-clap
+```
+
+### Dependency Inspection
+
+Zag provides powerful commands for inspecting and understanding your dependency tree:
+
+#### Package Listing (`zag list`)
+
+The `list` command provides both human-readable and machine-readable views of your dependencies:
+
+**Table format:**
+- Clean overview of all dependencies with installation status
+- Repository information extracted from GitHub URLs
+- Summary statistics showing installed vs missing packages
+- Hash mismatch detection for sync issues
+
+**JSON format:**
+- Complete dependency metadata for tooling integration
+- Installation status and file paths
+- Timestamp and version information from lock file
+- Repository owner/name extraction for each package
+
+```bash
+# Human-readable table
+zag list
+
+# Machine-readable JSON
+zag list --json | jq '.[] | select(.installed == false)'
+```
+
+#### Package Details (`zag info`)
+
+The `info` command provides comprehensive details about individual packages:
+
+**Key features:**
+- Complete package metadata (name, URL, hash, status)
+- Lock file integration showing timestamps and versions
+- Hash validation between manifest and lock file
+- Repository information parsing from GitHub URLs
+- Package structure validation (build.zig, src/ directory)
+- Contextual command suggestions based on package state
+
+**Use cases:**
+- Debugging dependency issues
+- Verifying package installation
+- Understanding package origins and versions
+- Checking for sync issues between manifest and lock file
+
+```bash
+# Get detailed info about a specific package
+zag info libxev
+
+# Check if a package needs updating
+zag info package_name | grep "Hash Mismatch"
 ```
 
 ## Configuration
