@@ -22,21 +22,72 @@ zag init
 
 ### `zag add [package]`
 
-Adds a package dependency to your project.
+Adds a package dependency to your project with full automation.
 
 ```bash
 zag add username/repo
 ```
 
 **What it does:**
-- Downloads the package from GitHub (currently only GitHub repositories are supported)
+- Downloads the package tarball from GitHub (currently only GitHub repositories are supported)
+- Extracts the package to `.zag/deps/package_name/`
+- Validates package structure (checks for build.zig and src/ directory)
 - Calculates SHA256 hash of the downloaded tarball
 - Adds the dependency to your `build.zig.zon` file
 - Updates the `zag.lock` file with exact version information
+- **Automatically modifies `build.zig`** to include the new dependency
+- Provides fallback instructions if automatic integration fails
 
 **Examples:**
 ```bash
 zag add mitchellh/libxev  # Add libxev from GitHub
+zag add ziglang/zig-clap  # Add command-line parser
+```
+
+**Directory structure after adding:**
+```
+your-project/
+├── build.zig              # ← Automatically updated!
+├── build.zig.zon          # ← Updated with dependency
+├── zag.lock               # ← Updated with package info
+├── .zag/
+│   ├── cache/
+│   │   └── mitchellh_libxev.tar.gz
+│   └── deps/
+│       └── libxev/        # ← Extracted package
+│           ├── build.zig
+│           ├── src/
+│           └── ...
+```
+
+**Pro tip:** Add this marker to your `build.zig` for perfect dependency placement:
+```zig
+// zag:deps - dependencies will be added below this line
+```
+
+### `zag clean`
+
+Removes cache and build artifacts to free up disk space.
+
+```bash
+zag clean              # Remove .zig-cache and .zag/cache
+zag clean --all        # Remove all build artifacts and lock files
+```
+
+**What it does:**
+- **Default mode:** Removes `.zig-cache/` and `.zag/cache/` directories
+- **With `--all` flag:** Also removes `zig-out/` and `zag.lock` files
+
+**Examples:**
+```bash
+zag clean              # Basic cleanup
+zag clean --all        # Complete cleanup including lockfile
+```
+
+**Output:**
+```
+Deleted .zig-cache/
+Deleted .zag/cache/
 ```
 
 ### `zag fetch`

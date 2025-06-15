@@ -1,20 +1,23 @@
 # Zag - A Modern Package Manager for Zig
 
 [![Made with Zig](https://img.shields.io/badge/Made%20with-Zig-orange.svg)](https://ziglang.org)
-[![Zig Nightly](https://img.shields.io/badge/Zig-Nightly-blue.svg)](https://ziglang.org/download)
+[![Zig 0.15+](https://img.shields.io/badge/Zig-0.15%2B-blue.svg)](https://ziglang.org/download)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/ghostkellz/zag)
 
-Zag is a modern, intuitive package manager for the [Zig programming language](https://ziglang.org). It simplifies dependency management and helps you build Zig projects efficiently.
+Zag is a modern, cargo-inspired package manager for the [Zig programming language](https://ziglang.org). It provides seamless dependency management with automatic build integration, making Zig project development as smooth as possible.
 
-## Features
+## ✨ Features
 
-- 📦 Manage Zig dependencies with ease
-- 🔒 Reproducible builds with lockfiles
-- 🚀 Automatic dependency resolution and downloading
-- 🔄 GitHub integration for seamless package imports
-- 🧩 Project scaffolding and initialization
-- 📝 Comprehensive documentation and error messages
+- 📦 **Automatic dependency management** - Add packages with `zag add username/repo`
+- 🔄 **Smart build integration** - Automatically modifies your `build.zig` file
+- 📁 **Package extraction** - Downloads and extracts packages to `.zag/deps/`
+- 🔒 **Reproducible builds** - Lock files ensure consistent dependency versions
+- � **GitHub integration** - Direct support for GitHub repositories
+- 🧩 **Project scaffolding** - Initialize new projects with `zag init`
+- 🧹 **Clean command** - Remove build artifacts and caches
+- ✅ **Package validation** - Ensures downloaded packages have proper structure
+- 🔗 **Transitive dependencies** - Handles dependency chains automatically
 
 ## Installation
 
@@ -54,18 +57,26 @@ zag add mitchellh/libxev
 ```
 
 This will:
-1. Download the GitHub repository
-2. Calculate its hash
-3. Add it to your `build.zig.zon` file
-4. Create/update the `zag.lock` file with exact versions
+1. Download the GitHub repository tarball
+2. Extract it to `.zag/deps/libxev/`
+3. Validate the package structure
+4. Calculate and verify SHA256 hash
+5. Add it to your `build.zig.zon` file
+6. Update the `zag.lock` file with exact versions
+7. **Automatically modify `build.zig`** to include the dependency
 
-### Fetch dependencies
-
-```bash
-zag fetch
+After running this command, you can immediately use the library in your code:
+```zig
+const libxev = @import("libxev");
 ```
 
-Updates all dependencies according to `build.zig.zon`, downloading any missing packages.
+### Build your project
+
+```bash
+zig build
+```
+
+Your dependencies are now fully integrated and ready to use!
 
 ## Documentation
 
