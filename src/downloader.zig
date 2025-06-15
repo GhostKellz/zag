@@ -8,7 +8,7 @@ const http = struct {
 };
 
 // Update HTTP headers usage for Zig 0.15.0
-const Headers = @import("std").http.client.Headers;
+const Headers = @import("std/http/headers.zig").Headers;
 
 /// Maximum size of downloaded content (100MB)
 const MAX_DOWNLOAD_SIZE = 100 * 1024 * 1024;
