@@ -1,14 +1,9 @@
 const std = @import("std");
-const fs = std.fs;
 const Allocator = std.mem.Allocator;
+const Headers = std.http.Headers;
+const http = std.http;
+const fs = std.fs;
 const crypto = std.crypto;
-const http = struct {
-    pub const Client = @import("std").http.Client;
-    pub const Headers = @import("std").http.Headers;
-};
-
-// Update HTTP headers usage for Zig 0.15.0
-const Headers = @import("std/http/headers.zig").Headers;
 
 /// Maximum size of downloaded content (100MB)
 const MAX_DOWNLOAD_SIZE = 100 * 1024 * 1024;
