@@ -6,8 +6,8 @@ pkgdesc="A modern package manager for Zig"
 arch=('x86_64' 'aarch64')
 url="https://github.com/yourusername/zag"
 license=('MIT')
-depends=('zig>=0.11.0' 'curl' 'tar')
-makedepends=('zig>=0.11.0' 'git')
+depends=('curl' 'tar')
+makedepends=('git')
 provides=('zag')
 conflicts=('zag')
 source=("git+${url}.git")
@@ -24,6 +24,9 @@ package() {
   # Create directories
   mkdir -p "${pkgdir}/usr/bin"
   mkdir -p "${pkgdir}/usr/share/doc/zag"
+  mkdir -p "${pkgdir}/usr/share/zsh/site-functions"
+  mkdir -p "${pkgdir}/usr/share/bash-completion/completions"
+  mkdir -p "${pkgdir}/usr/share/man/man1"
   
   # Install binary
   install -Dm755 "zig-out/bin/zag" "${pkgdir}/usr/bin/zag"
@@ -32,6 +35,14 @@ package() {
   install -Dm644 "README.md" "${pkgdir}/usr/share/doc/zag/README.md"
   install -Dm644 "COMMANDS.md" "${pkgdir}/usr/share/doc/zag/COMMANDS.md"
   install -Dm644 "DOCS.md" "${pkgdir}/usr/share/doc/zag/DOCS.md"
+  
+  # Install shell completions
+  install -Dm644 "release/completions/zag.zsh" "${pkgdir}/usr/share/zsh/site-functions/_zag"
+  install -Dm644 "release/completions/zag.bash" "${pkgdir}/usr/share/bash-completion/completions/zag"
+  install -Dm644 "release/completions/zag.fish" "${pkgdir}/usr/share/fish/completions/zag.fish"
+  
+  # Install man page
+  install -Dm644 "release/man/zag.1" "${pkgdir}/usr/share/man/man1/zag.1"
   
   # Install license
   if [ -f "LICENSE" ]; then

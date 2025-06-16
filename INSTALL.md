@@ -7,7 +7,7 @@ This document provides installation instructions for the Zag package manager on 
 For a quick installation on most Linux systems:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yourusername/zag/main/release/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/ghostkellz/zag/main/release/install.sh | bash
 ```
 
 This installs Zag locally to `~/.local/bin/zag`.
@@ -25,7 +25,7 @@ This installs Zag locally to `~/.local/bin/zag`.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/zag.git
+git clone https://github.com/ghostkellz/zag.git
 cd zag
 
 # Build the project
@@ -82,19 +82,19 @@ You can also use Zag via Docker:
 
 ```bash
 # Pull the image
-docker pull yourusername/zag:latest
+docker pull ghostkellz/zag:latest
 
 # Run a command
-docker run --rm yourusername/zag:latest help
+docker run --rm ghostkellz/zag:latest help
 
 # Use in a project directory
-docker run --rm -v $(pwd):/workspace -w /workspace yourusername/zag:latest init
+docker run --rm -v $(pwd):/workspace -w /workspace ghostkellz/zag:latest init
 ```
 
 Or build the Docker image yourself:
 
 ```bash
-git clone https://github.com/yourusername/zag.git
+git clone https://github.com/ghostkellz/zag.git
 cd zag/release/docker
 ./build-docker.sh
 ```
