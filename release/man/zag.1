@@ -1,0 +1,139 @@
+.TH ZAG 1 "March 2024" "zag 0.1.0" "Zag Manual"
+
+.SH NAME
+zag \- A modern package manager for Zig
+
+.SH SYNOPSIS
+.B zag
+[\fICOMMAND\fR] [\fIOPTIONS\fR]
+
+.SH DESCRIPTION
+.B zag
+is a modern, cargo-inspired package manager for the Zig programming language.
+It provides seamless dependency management with automatic build integration,
+making Zig project development as smooth as possible.
+
+.SH COMMANDS
+
+.TP
+.BR init
+Initialize a new project with the necessary file structure.
+
+.TP
+.BR add " " \fIPACKAGE\fR
+Add a dependency to your project with full automation.
+
+.TP
+.BR remove " " \fIPACKAGE\fR " | " \fBrm\fR " " \fIPACKAGE\fR
+Remove a package dependency from your project with complete cleanup.
+
+.TP
+.BR update
+Update all dependencies to their latest versions by re-downloading from GitHub.
+
+.TP
+.BR list " | " \fBls\fR " [--json]"
+List all dependencies in the project. With \fB\-\-json\fR, outputs machine-readable JSON array.
+
+.TP
+.BR info " " \fIPACKAGE\fR
+Show detailed information about a specific package.
+
+.TP
+.BR fetch
+Fetch all dependencies specified in build.zig.zon.
+
+.TP
+.BR build
+Build your project using the Zig build system.
+
+.TP
+.BR lock
+Update or create the lock file without downloading packages.
+
+.TP
+.BR clean " [--all]"
+Remove cache and build artifacts. With \fB\-\-all\fR flag, also removes zig-out/ and zag.lock.
+
+.TP
+.BR version
+Display the current version of zag.
+
+.TP
+.BR help
+Display help information about available commands.
+
+.SH EXAMPLES
+
+.PP
+Initialize a new project:
+.nf
+.RS
+zag init
+.RE
+.fi
+
+.PP
+Add a dependency from GitHub:
+.nf
+.RS
+zag add mitchellh/libxev
+.RE
+.fi
+
+.PP
+List all dependencies:
+.nf
+.RS
+zag list
+.RE
+.fi
+
+.PP
+Get package information:
+.nf
+.RS
+zag info libxev
+.RE
+.fi
+
+.PP
+Clean build artifacts:
+.nf
+.RS
+zag clean
+zag clean --all
+.RE
+.fi
+
+.SH FILES
+
+.TP
+.I build.zig.zon
+Project manifest file containing dependencies.
+
+.TP
+.I zag.lock
+Lock file that ensures reproducible builds.
+
+.TP
+.I .zag/cache/
+Downloaded package tarballs.
+
+.TP
+.I .zag/deps/
+Extracted package source code.
+
+.SH ENVIRONMENT
+
+Zag doesn't currently use any environment variables.
+
+.SH AUTHOR
+
+Zag Team <your-email@example.com>
+
+.SH SEE ALSO
+
+zig(1), curl(1), tar(1)
+
+Report bugs to: https://github.com/yourusername/zag/issues

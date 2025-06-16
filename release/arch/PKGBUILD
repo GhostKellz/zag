@@ -1,0 +1,40 @@
+# Maintainer: Zag Team <your-email@example.com>
+pkgname=zag
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="A modern package manager for Zig"
+arch=('x86_64' 'aarch64')
+url="https://github.com/yourusername/zag"
+license=('MIT')
+depends=('zig>=0.11.0' 'curl' 'tar')
+makedepends=('zig>=0.11.0' 'git')
+provides=('zag')
+conflicts=('zag')
+source=("git+${url}.git")
+sha256sums=('SKIP')
+
+build() {
+  cd "${srcdir}/zag"
+  zig build -Doptimize=ReleaseSafe
+}
+
+package() {
+  cd "${srcdir}/zag"
+  
+  # Create directories
+  mkdir -p "${pkgdir}/usr/bin"
+  mkdir -p "${pkgdir}/usr/share/doc/zag"
+  
+  # Install binary
+  install -Dm755 "zig-out/bin/zag" "${pkgdir}/usr/bin/zag"
+  
+  # Install documentation
+  install -Dm644 "README.md" "${pkgdir}/usr/share/doc/zag/README.md"
+  install -Dm644 "COMMANDS.md" "${pkgdir}/usr/share/doc/zag/COMMANDS.md"
+  install -Dm644 "DOCS.md" "${pkgdir}/usr/share/doc/zag/DOCS.md"
+  
+  # Install license
+  if [ -f "LICENSE" ]; then
+    install -Dm644 "LICENSE" "${pkgdir}/usr/share/licenses/zag/LICENSE"
+  fi
+}
